@@ -2,10 +2,19 @@ import XCTest
 @testable import PusherNotificationsSwift
 
 class PusherNotificationsSwiftTests: XCTestCase {
+    
     func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        XCTAssertEqual(PusherNotificationsSwift().text, "Hello, World!")
+        
+        let notificationSentExpectation = self.expectation(description: "send notification request")
+        
+        let pusher = Pusher(appKey: "eb06ab72c5538445fdfc", appSecret: "2b4f128d1ad1656699a5", appId: "257217")
+        pusher.notify(interests: ["unittests"], apns: ["aps": ["alert": ["body": "hello world"]]]) { (error) in
+            
+            XCTAssertNil(error)
+            notificationSentExpectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 10, handler: nil)
     }
 
 

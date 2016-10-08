@@ -1,4 +1,6 @@
 import Foundation
+import Hash
+import HMAC
 
 public enum PusherError: Error {
     case invalidInput
@@ -6,11 +8,13 @@ public enum PusherError: Error {
     case invalidResponseStatusCode(statusCode: Int)
 }
 
-public class Pusher {
+final public class Pusher {
     
     private let appId: String
     private let appKey: String
     private let appSecret: String
+    
+    private let session = URLSession(configuration: URLSessionConfiguration.default)
     
     public init(appKey: String, appSecret: String, appId: String) {
         self.appId = appId
@@ -37,30 +41,32 @@ public class Pusher {
         }
 
         if let webhookURL = webhookURL {
-            bodyDictionary["webhook_url"] = webhookURL
+            bodyDictionary["webhook_url"] = webhookURL.absoluteString
             bodyDictionary["webhook_level"] = webhookLevel
         }
-        
-        bodyDictionary["auth_key"] = appKey
-        bodyDictionary["auth_timestamp"] = round(Date().timeIntervalSince1970)
-        bodyDictionary["auth_version"] = 1.0
         
         do {
             
             let bodyData = try JSONSerialization.data(withJSONObject: bodyDictionary, options: [])
+            let bodyMd5String = try Hash.make(.md5, try bodyData.makeBytes()).hexString
+            let queries = "auth_key=\(appKey)&auth_timestamp=\(Int64(Date().timeIntervalSince1970))&auth_version=1.0&body_md5=\(bodyMd5String)"
+            let authSignature = try HMAC.make(.sha256, "POST\n/server_api/v1/apps/\(appId)/notifications\n\(queries)".bytes, key: appSecret.bytes).hexString
             
-            let session = URLSession.shared
-            let request = NSMutableURLRequest(url: URL(string: "/v1/apps/\(appId)/notifications")!)
+            //print("\(bodyData.string)")
+            
+            let request = NSMutableURLRequest(url: URL(string: "https://nativepush-cluster1.pusher.com/server_api/v1/apps/\(appId)/notifications?\(queries)&auth_signature=\(authSignature)")!)
             request.httpMethod = "POST"
             request.httpBody = bodyData
-            
-            bodyDictionary["body_md5"] = String(data: bodyData, encoding: .utf8)!.md5
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             
             session.dataTask(with: request as URLRequest, completionHandler: { (data, response, error) in
                 if let error = error {
                     completion(error)
                 } else if let response = response as? HTTPURLResponse {
                     if 200 ... 299 ~= response.statusCode {
+                        if let data = data {
+                            print("\(data.string)")
+                        }
                         completion(nil)
                     } else {
                         completion(PusherError.invalidResponseStatusCode(statusCode: response.statusCode))
@@ -68,7 +74,7 @@ public class Pusher {
                 } else {
                     completion(PusherError.invalidResponse)
                 }
-            })
+            }).resume()
             
         } catch {
             completion(PusherError.invalidInput)
