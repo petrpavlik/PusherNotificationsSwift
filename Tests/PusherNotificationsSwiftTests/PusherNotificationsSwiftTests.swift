@@ -1,7 +1,24 @@
+import Foundation
 import XCTest
+
 @testable import PusherNotificationsSwift
+@testable import Hash
+@testable import HMAC
 
 class PusherNotificationsSwiftTests: XCTestCase {
+    
+    func testHashing() {
+        
+        let bodyDictionary: [String:Any] = [
+            "interests": ["unittests"],
+            "apns": ["aps": ["alert": ["body": "hello world"]]]
+        ]
+        
+        let bodyData = try! JSONSerialization.data(withJSONObject: bodyDictionary, options: [])
+        let bodyMd5String = try! Hash.make(.md5, try bodyData.makeBytes()).hexString
+        
+        XCTAssertEqual(bodyMd5String, "6cc9f15745c9079a143b14eea74ccc98")
+    }
     
     func testExample() {
         
@@ -21,6 +38,7 @@ class PusherNotificationsSwiftTests: XCTestCase {
     static var allTests : [(String, (PusherNotificationsSwiftTests) -> () throws -> Void)] {
         return [
             ("testExample", testExample),
+            ("testHashing", testHashing)
         ]
     }
 }
