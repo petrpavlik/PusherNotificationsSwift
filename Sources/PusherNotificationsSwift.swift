@@ -5,7 +5,7 @@ import HMAC
 public enum PusherError: Error {
     case invalidInput
     case invalidResponse
-    case invalidResponseStatusCode(statusCode: Int)
+    case invalidResponseStatusCode(statusCode: Int, description: String?)
 }
 
 final public class Pusher {
@@ -69,7 +69,7 @@ final public class Pusher {
                         }
                         completion(nil)
                     } else {
-                        completion(PusherError.invalidResponseStatusCode(statusCode: response.statusCode))
+                        completion(PusherError.invalidResponseStatusCode(statusCode: response.statusCode, description: data?.string))
                     }
                 } else {
                     completion(PusherError.invalidResponse)
