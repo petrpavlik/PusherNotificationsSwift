@@ -54,12 +54,12 @@ final public class Pusher {
             
             //print("\(bodyData.string)")
             
-            let request = NSMutableURLRequest(url: URL(string: "https://nativepush-cluster1.pusher.com/server_api/v1/apps/\(appId)/notifications?\(queries)&auth_signature=\(authSignature)")!)
+            var request = URLRequest(url: URL(string: "https://nativepush-cluster1.pusher.com/server_api/v1/apps/\(appId)/notifications?\(queries)&auth_signature=\(authSignature)")!)
             request.httpMethod = "POST"
             request.httpBody = bodyData
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             
-            session.dataTask(with: request as URLRequest, completionHandler: { (data, response, error) in
+            session.dataTask(with: request, completionHandler: { (data, response, error) in
                 if let error = error {
                     completion(error)
                 } else if let response = response as? HTTPURLResponse {
