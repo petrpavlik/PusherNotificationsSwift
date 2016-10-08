@@ -5,14 +5,20 @@ Pusher currently provides free unlimited notifications for both iOS and Android,
 
 Check out [Pusher’s official documentation](https://pusher.com/docs/push_notifications) and the usage example bellow to get started.
 
-## Usage
+[![Build Status](https://travis-ci.org/petrpavlik/PusherNotificationsSwift.svg?branch=master)](https://travis-ci.org/petrpavlik/PusherNotificationsSwift)
+[![Latest Release](https://img.shields.io/github/release/petrpavlik/PusherNotificationsSwift.svg)](https://github.com/petrpavlik/PusherNotificationsSwift/releases/latest)
+![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20OS%20X-blue.svg)
+![Package Managers](https://img.shields.io/badge/package%20managers-SwiftPM-yellow.svg)
+
+## Basic Usage
 ```swift
 let pusher = Pusher(appKey: "a", appSecret: "b", appId: "c")
-pusher.notify(interests: ["unittests"], apns: ["aps": ["alert": ["body": "hello world"]]]) { (error) in
-    if let error = error {
-	    // …
-    }
+do {
+    try pusher.notify(interests: ["donuts"], apns: ["aps": ["alert": ["body": "hello world"]]])
+} catch {
+    // ...
 }
+
 ```
 
 ## Installation
