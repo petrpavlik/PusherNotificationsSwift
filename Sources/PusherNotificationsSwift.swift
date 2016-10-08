@@ -1,6 +1,9 @@
 import Foundation
+
+// Vapor frameworks
 import Hash
 import HMAC
+import HTTP
 
 public enum PusherError: Error {
     case invalidInput
@@ -22,7 +25,7 @@ final public class Pusher {
         self.appSecret = appSecret
     }
     
-    public func notify(interests: [String], apns: [String:Any]? = nil, gcm: [String:Any]? = nil, fcm: [String:Any]? = nil, webhookURL: URL? = nil, webhookLevel: String = "INFO", completion: @escaping (_ error: Error?) -> Void) {
+    public func notify(interests: [String], apns: [String:Any]? = nil, gcm: [String:Any]? = nil, fcm: [String:Any]? = nil, webhookURL: URL? = nil, webhookLevel: String = "INFO") throws {
     
         var bodyDictionary: [String:Any] = [
             "interests": interests
@@ -45,41 +48,16 @@ final public class Pusher {
             bodyDictionary["webhook_level"] = webhookLevel
         }
         
-        do {
-            
-            let bodyData = try JSONSerialization.data(withJSONObject: bodyDictionary, options: [])
-            let bodyMd5String = try Hash.make(.md5, try bodyData.makeBytes()).hexString
-            let queries = "auth_key=\(appKey)&auth_timestamp=\(Int64(Date().timeIntervalSince1970))&auth_version=1.0&body_md5=\(bodyMd5String)"
-            let authSignature = try HMAC.make(.sha256, "POST\n/server_api/v1/apps/\(appId)/notifications\n\(queries)".bytes, key: appSecret.bytes).hexString
-            
-            //print("\(bodyData.string)")
-            
-            var request = URLRequest(url: URL(string: "https://nativepush-cluster1.pusher.com/server_api/v1/apps/\(appId)/notifications?\(queries)&auth_signature=\(authSignature)")!)
-            request.httpMethod = "POST"
-            request.httpBody = bodyData
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
-            session.dataTask(with: request, completionHandler: { (data, response, error) in
-                if let error = error {
-                    completion(error)
-                } else if let response = response as? HTTPURLResponse {
-                    if 200 ... 299 ~= response.statusCode {
-                        if let data = data {
-                            print("\(data.string)")
-                        }
-                        completion(nil)
-                    } else {
-                        completion(PusherError.invalidResponseStatusCode(statusCode: response.statusCode, description: data?.string))
-                    }
-                } else {
-                    completion(PusherError.invalidResponse)
-                }
-            }).resume()
-            
-        } catch {
-            completion(PusherError.invalidInput)
-        }
+        let bodyData = try JSONSerialization.data(withJSONObject: bodyDictionary, options: [])
+        let bodyMd5String = try Hash.make(.md5, try bodyData.makeBytes()).hexString
+        let queries = "auth_key=\(appKey)&auth_timestamp=\(Int64(Date().timeIntervalSince1970))&auth_version=1.0&body_md5=\(bodyMd5String)"
+        let authSignature = try HMAC.make(.sha256, "POST\n/server_api/v1/apps/\(appId)/notifications\n\(queries)".bytes, key: appSecret.bytes).hexString
         
+        //print("\(bodyData.string)")
+        
+        let body = Body.data(try bodyData.makeBytes())
+        
+        _ = try BasicClient.post("https://nativepush-cluster1.pusher.com/server_api/v1/apps/\(appId)/notifications?\(queries)&auth_signature=\(authSignature)", headers: [HeaderKey("Content-Type"): "application/json"], body: body)
         
     }
     
